@@ -87,28 +87,85 @@
 <script>
 const $ = s => document.querySelector(s);
 let rows = [], heads = [];
+/** HTML 转义：客户数据里的 < > & 不能破坏页面 */
+const esc = s => String(s===undefined||s===null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
-function parse(text){
-  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim().length);
-  if(!lines.length) return null;
-  const sep = (lines[0].includes('\t') && !lines[0].includes(',')) ? '\t' : ',';
-  const split = l => l.split(sep).map(s=>s.trim().replace(/^["']|["']$/g,''));
-  heads = split(lines[0]);
-  rows = lines.slice(1).map(split);
-  return rows;
+/** 解析 CSV/TSV，支持引号包裹的字段、字段内逗号、字段内换行 */
+function parseCSV(text){
+  const src = String(text).replace(/^\uFEFF/, '');
+  const firstLine = src.split(/\r?\n/).find(l=>l.trim().length) || '';
+  const sep = (firstLine.includes('\t') && !firstLine.includes(',')) ? '\t' : ',';
+  const out = [];
+  let field = '', row = [], inQ = false;
+  for (let i=0;i<src.length;i++){
+    const ch = src[i];
+    if (inQ){
+      if (ch === '"'){
+        if (src[i+1] === '"'){ field += '"'; i++; }
+        else inQ = false;
+      } else field += ch;
+      continue;
+    }
+    if (ch === '"'){ inQ = true; continue; }
+    if (ch === sep){ row.push(field.trim()); field=''; continue; }
+    if (ch === '\n'){ row.push(field.trim()); field=''; out.push(row); row=[]; continue; }
+    if (ch === '\r') continue;
+    field += ch;
+  }
+  if (field.length || row.length){ row.push(field.trim()); out.push(row); }
+  return out.filter(r=>r.some(c=>c.length));
 }
-const num = v => { const n = parseFloat(String(v).replace(/[^\d.\-]/g,'')); return isNaN(n)?null:n; };
-const isNumCol = i => { const vals = rows.map(r=>num(r[i])).filter(v=>v!==null); return vals.length >= Math.max(1, rows.length*0.6); };
+
+/** 解析数字：支持千分位、货币符号、百分号；解析不了返回 null */
+const num = v => {
+  if (v === null || v === undefined) return null;
+  let s = String(v).trim();
+  if (!s) return null;
+  // 整串就是日期 → 不当数字（否则 2026-01 会被算成 2026）
+  if (looksLikeDate(s)) return null;
+  const pct = /%$/.test(s);
+  s = s.replace(/[^\d.,\-+eE]/g, '');
+  if (!s) return null;
+  // 只有当逗号像千分位（后跟 3 位数字）时才当分隔符
+  if (/,\d{3}(\D|$)/.test(s)) s = s.replace(/,/g, '');
+  else s = s.replace(/,/g, '.');
+  if ((s.match(/\./g)||[]).length > 1){ const p = s.lastIndexOf('.'); s = s.slice(0,p).replace(/\./g,'') + '.' + s.slice(p+1); }
+  const n = parseFloat(s);
+  if (isNaN(n)) return null;
+  return pct ? n/100 : n;
+};
+const isNumCol = i => {
+  const vals = rows.map(r=>num(r[i])).filter(v=>v!==null);
+  return vals.length >= Math.max(1, rows.length*0.6);
+};
+/** 日期列：表头像日期，或整列都长得像日期 */
+const looksLikeDate = s => /^\d{4}[-\/.年]\d{1,2}([-\/.月]\d{1,2})?日?$|^\d{1,2}[-\/]\d{1,2}([-\/]\d{2,4})?$/.test(String(s).trim());
 
 function detect(){
   const cols = heads.map((h,i)=>({i,name:h,num:isNumCol(i)}));
-  const dim = cols.find(c=>!c.num) || cols[0];
-  const val = cols.find(c=>c.num && c.i!==dim.i) || cols.find(c=>c.num);
-  const date = cols.find(c=>!c.num && /date|日期|时间|月份|day|time/i.test(c.name));
+  // 维度列：第一个非数值列，且不能是日期列
+  let dim = cols.find(c=>!c.num && !looksLikeDate(c.name) && !c.date) || cols.find(c=>!c.num);
+  // 日期列：表头含关键词，或整列 60% 以上像日期
+  let date = cols.find(c=>!c.num && /date|日期|时间|月份|day|time|年|月/i.test(c.name));
+  if (!date){
+    const cand = cols.filter(c=>!c.num && c.i!==(dim&&dim.i));
+    for (const c of cand){
+      const vals = rows.map(r=>String(r[c.i]||'').trim()).filter(v=>v.length);
+      if (vals.length && vals.filter(looksLikeDate).length >= vals.length*0.6){ date = c; break; }
+    }
+  }
+  if (dim && date && dim.i===date.i) dim = cols.find(c=>!c.num && c.i!==date.i) || dim;
+  // 指标列：第一个数值列，且不是维度/日期列
+  let val = cols.find(c=>c.num && c.i!==(dim&&dim.i) && c.i!==(date&&date.i));
+  if (!val) val = cols.find(c=>c.num && c.i!==(dim&&dim.i));
+  if (!val) val = cols.find(c=>c.num);
   return {cols, dim, val, date};
 }
-function fmt(n){
+function fmt(n, isPct){
   if(n===null||n===undefined) return '—';
+  if(isPct) return (Math.round(n*10000)/10000*100).toFixed(2).replace(/\.?0+$/,'')+'%';
   const a=Math.abs(n);
   if(a>=1e8) return (n/1e8).toFixed(2)+'亿';
   if(a>=1e4) return (n/1e4).toFixed(2)+'万';
@@ -116,34 +173,50 @@ function fmt(n){
 }
 function render(){
   const out = $('#out');
-  if(!rows.length){ out.innerHTML=''; return; }
+  if(!rows.length){
+    out.innerHTML = '<div class="card"><div class="hint" style="font-size:14px">没有数据可展示。请粘贴或拖入至少一行数据的表格。</div></div>';
+    $('#meta').style.display='none';
+    return;
+  }
   const {cols,dim,val,date} = detect();
-  const nums = rows.map(r=>num(r[val.i])).filter(v=>v!==null);
-  const sum = nums.reduce((a,b)=>a+b,0);
-  const avg = nums.length? sum/nums.length : 0;
-  const mx = Math.max(...nums), mn = Math.min(...nums);
-  const uniq = new Set(rows.map(r=>r[dim.i])).size;
+  const nums = val ? rows.map(r=>num(r[val.i])).filter(v=>v!==null) : [];
+  const hasNum = nums.length>0;
+  // 指标列原始值里带 % 的，按百分比显示
+  const pctCol = hasNum && val ? rows.some(r=>/%/.test(String(r[val.i]||''))) : false;
+  const sum = hasNum ? nums.reduce((a,b)=>a+b,0) : null;
+  const avg = hasNum ? sum/nums.length : null;
+  const mx = hasNum ? Math.max(...nums) : null;
+  const mn = hasNum ? Math.min(...nums) : null;
+  const uniq = dim ? new Set(rows.map(r=>r[dim.i])).size : rows.length;
 
   let html = '<div class="card"><div class="kpi">';
   html += `<div><span>记录数</span><b>${rows.length}</b></div>`;
-  html += `<div><span>${val?val.name:'数值'} 合计</span><b>${fmt(sum)}</b></div>`;
-  html += `<div><span>平均值</span><b>${fmt(avg)}</b></div>`;
-  html += `<div><span>最大值</span><b>${fmt(mx)}</b></div>`;
-  html += `<div><span>最小值</span><b>${fmt(mn)}</b></div>`;
-  html += `<div><span>${dim.name} 去重数</span><b>${uniq}</b></div>`;
+  if (hasNum){
+    html += `<div><span>${esc(val.name)} 合计</span><b>${fmt(sum, pctCol)}</b></div>`;
+    html += `<div><span>平均值</span><b>${fmt(avg, pctCol)}</b></div>`;
+    html += `<div><span>最大值</span><b>${fmt(mx, pctCol)}</b></div>`;
+    html += `<div><span>最小值</span><b>${fmt(mn, pctCol)}</b></div>`;
+  } else {
+    html += `<div><span>数值列</span><b style="font-size:15px;color:var(--muted)">未识别到</b></div>`;
+  }
+  html += `<div><span>${esc(dim?dim.name:'列')} 去重数</span><b>${uniq}</b></div>`;
   html += '</div>';
 
   // Top-N
-  const agg = {};
-  rows.forEach(r=>{ const k=r[dim.i]; agg[k]=(agg[k]||0)+(num(r[val.i])||0); });
-  const top = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const max = top[0]?top[0][1]:1;
-  html += `<h3 style="font-size:14px;margin:18px 0 8px">${dim.name} Top ${top.length}（按 ${val.name}）</h3><div class="chart">`;
-  top.forEach(([k,v])=>{ html += `<div class="bar-row"><div class="lbl">${k}</div><div class="track"><div class="fill" style="width:${Math.max(2,v/max*100)}%"></div></div><div class="val">${fmt(v)}</div></div>`; });
-  html += '</div>';
+  if(hasNum && dim){
+    const agg = {};
+    rows.forEach(r=>{ const k=r[dim.i]; agg[k]=(agg[k]||0)+(num(r[val.i])||0); });
+    const top = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const max = top[0]?top[0][1]:1;
+    html += `<h3 style="font-size:14px;margin:18px 0 8px">${esc(dim.name)} Top ${top.length}（按 ${esc(val.name)}）</h3><div class="chart">`;
+    top.forEach(([k,v])=>{ html += `<div class="bar-row"><div class="lbl">${esc(k)}</div><div class="track"><div class="fill" style="width:${Math.max(2,v/max*100)}%"></div></div><div class="val">${fmt(v, pctCol)}</div></div>`; });
+    html += '</div>';
+  } else if(!hasNum){
+    html += `<div class="hint" style="margin-top:14px">这份数据里没有识别到数值列，无法计算 KPI 与排行。下面仍会列出明细。</div>`;
+  }
 
   // 趋势
-  if(date){
+  if(date && hasNum && val){
     const tm = {};
     rows.forEach(r=>{ const k=String(r[date.i]).slice(0,7); tm[k]=(tm[k]||0)+(num(r[val.i])||0); });
     const ks = Object.keys(tm).sort();
@@ -155,21 +228,44 @@ function render(){
 
   // 明细
   html += `<h3 style="font-size:14px;margin:18px 0 8px">明细（前 100 行）</h3><div style="overflow:auto;max-height:340px"><table><thead><tr>`;
-  heads.forEach(h=>html+=`<th>${h}</th>`); html+='</tr></thead><tbody>';
-  rows.slice(0,100).forEach(r=>{ html+='<tr>'; r.forEach(c=>{ const n=num(c); html+=`<td>${(n!==null&&/^[\d.,\-+¥￥% ]+$/.test(c))?fmt(n):(c||'')}</td>`; }); html+='</tr>'; });
+  heads.forEach(h=>html+=`<th>${esc(h)}</th>`); html+='</tr></thead><tbody>';
+  rows.slice(0,100).forEach(r=>{
+    html+='<tr>';
+    r.forEach(c=>{
+      const n=num(c);
+      const isPctCell = n!==null && /%/.test(String(c));
+      const numeric = n!==null && /^[\d.,\-+¥￥% ]+$/.test(String(c));
+      html+=`<td>${numeric?fmt(n, isPctCell):esc(c)}</td>`;
+    });
+    html+='</tr>';
+  });
   html+='</tbody></table></div></div>';
   out.innerHTML = html;
-  $('#detect').innerHTML = `已识别 <b>${cols.length}</b> 列，数值列 <b>${cols.filter(c=>c.num).length}</b> 个；维度列取 <b>${dim.name}</b>，指标列取 <b>${val?val.name:'—'}</b>${date?`，日期列 <b>${date.name}</b>`:''}。`;
+  $('#detect').innerHTML = `已识别 <b>${cols.length}</b> 列，数值列 <b>${cols.filter(c=>c.num).length}</b> 个；维度列取 <b>${esc(dim?dim.name:'—')}</b>，指标列取 <b>${esc(val?val.name:'—')}</b>${date?`，日期列 <b>${esc(date.name)}</b>`:''}。`;
   $('#meta').style.display='block';
   $('#meta').innerHTML = `数据源：本地解析，未上传任何服务器。共 ${rows.length} 行 × ${heads.length} 列。`;
 }
-$('#gen').onclick = ()=>{ if(parse($('#paste').value)) render(); };
-$('#demo').onclick = ()=>{ $('#paste').value='渠道,订单数,销售额\n小红书,128,20480\n抖音,96,15360\n微信,212,33920\nB站,64,7680\n微博,41,5740\n知乎,33,4290'; parse($('#paste').value); render(); };
+/** 解析并渲染的统一入口 */
+function load(text){
+  const table = parseCSV(text||'');
+  if(!table.length){ heads=[]; rows=[]; render(); return false; }
+  heads = table[0];
+  rows = table.slice(1);
+  render();
+  return true;
+}
+$('#gen').onclick = ()=>{ load($('#paste').value); };
+$('#demo').onclick = ()=>{ $('#paste').value='渠道,订单数,销售额\n小红书,128,20480\n抖音,96,15360\n微信,212,33920\nB站,64,7680\n微博,41,5740\n知乎,33,4290'; load($('#paste').value); };
 $('#drop').onclick = ()=>$('#file').click();
-$('#file').onchange = e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ $('#paste').value=r.result; parse(r.result); render(); }; r.readAsText(f,'utf-8'); };
+function readFile(f){
+  const r=new FileReader();
+  r.onload=()=>{ $('#paste').value=r.result; load(r.result); };
+  r.readAsText(f,'utf-8');
+}
+$('#file').onchange = e=>{ const f=e.target.files[0]; if(f) readFile(f); };
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.add('hot');}));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.remove('hot');}));
-document.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ $('#paste').value=r.result; parse(r.result); render(); }; r.readAsText(f,'utf-8'); });
+document.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) readFile(f); });
 $('#exp').onclick = ()=>{
   const cur = $('#out').innerHTML;
   const doc = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>数据看板</title><style>${document.querySelector('style').textContent}</style></head><body><div class="wrap">${cur}</div></body></html>`;
