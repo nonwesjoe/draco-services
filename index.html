@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draco AI 自动化服务 · 交付样例与报价</title>
+<meta name="description" content="脚本定制 / 数据自动化 / AI 接入 / 网站部署。交付即用的自动化工具，实测可跑，附样例源码。">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#131722; --panel2:#1a2030; --line:#242c3c;
+    --text:#e8edf7; --muted:#8e9cb5; --accent:#ff6f9c; --accent2:#7aa2ff; --ok:#3ddc97;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    line-height:1.75}
+  a{color:var(--accent2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  header{padding:64px 0 44px;border-bottom:1px solid var(--line);
+    background:radial-gradient(900px 380px at 18% -10%,rgba(255,111,156,.16),transparent 62%),
+               radial-gradient(760px 320px at 88% 0%,rgba(122,162,255,.14),transparent 60%)}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.18em;font-weight:700}
+  h1{font-size:clamp(30px,5vw,50px);margin:14px 0 12px;line-height:1.2;letter-spacing:-.01em}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--muted);font-size:16px;max-width:720px;margin:0 0 26px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{display:inline-block;padding:11px 22px;border-radius:10px;font-weight:700;font-size:14.5px}
+  .btn-p{background:linear-gradient(120deg,var(--accent),#ff93b4);color:#2b0713}
+  .btn-g{border:1px solid var(--line);color:var(--text);background:var(--panel)}
+  .btn:hover{text-decoration:none;filter:brightness(1.08)}
+  .pills{margin-top:26px;display:flex;gap:9px;flex-wrap:wrap}
+  .pill{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 14px;font-size:12.5px;color:var(--muted)}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:23px;margin:0 0 8px;letter-spacing:-.01em}
+  .sec-sub{color:var(--muted);margin:0 0 26px;font-size:14.5px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;transition:.2s}
+  .card:hover{border-color:#3a455c;transform:translateY(-2px)}
+  .card h3{margin:0 0 8px;font-size:16.5px}
+  .card p{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .price{font-size:26px;font-weight:800;background:linear-gradient(100deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .price small{font-size:13px;color:var(--muted);font-weight:500;-webkit-text-fill-color:var(--muted)}
+  .card ul{margin:0;padding-left:17px;color:var(--muted);font-size:13.5px}
+  .card li{margin:3px 0}
+  .tag{display:inline-block;background:#1a2432;border:1px solid var(--line);border-radius:6px;
+    padding:2px 9px;font-size:11.5px;color:var(--muted);margin-right:6px}
+
+  .demo{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:18px}
+  .demo h3{margin:0 0 6px;font-size:17px}
+  .demo .meta{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:16px 0}
+  .feat div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px}
+  .feat b{display:block;color:var(--text);font-size:13px;margin-bottom:3px}
+  .feat span{color:var(--muted);font-size:12.5px}
+  .cmd{background:#0a0c11;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#c8d3e6;overflow-x:auto;line-height:1.9}
+  .cmd b{color:var(--ok);font-weight:600}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .btn-sm{display:inline-block;padding:8px 15px;border-radius:8px;font-size:13px;font-weight:600;
+    border:1px solid var(--line);background:var(--panel2);color:var(--text)}
+  .btn-sm:hover{text-decoration:none;border-color:var(--accent)}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--muted);font-size:12.5px;font-weight:600}
+  td b{color:var(--text)}
+  tr td:first-child{white-space:nowrap;color:var(--muted);font-size:13px}
+
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;counter-reset:s}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;position:relative}
+  .step:before{counter-increment:s;content:"0" counter(s);display:block;color:var(--accent);
+    font-weight:800;font-size:13px;letter-spacing:.1em;margin-bottom:8px}
+  .step h4{margin:0 0 6px;font-size:15.5px}
+  .step p{margin:0;color:var(--muted);font-size:13.5px}
+
+  .faq{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 22px}
+  .faq details{border-bottom:1px solid var(--line);padding:14px 0}
+  .faq details:last-child{border-bottom:0}
+  .faq summary{cursor:pointer;font-weight:600;font-size:15px;list-style:none}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary:before{content:"＋ ";color:var(--accent)}
+  .faq details[open] summary:before{content:"－ "}
+  .faq p{margin:10px 0 0;color:var(--muted);font-size:14px}
+
+  .contact{background:linear-gradient(135deg,rgba(255,111,156,.09),rgba(122,162,255,.07));
+    border:1px solid var(--line);border-radius:16px;padding:32px;text-align:center}
+  .contact h2{margin-bottom:8px}
+  .contact p{color:var(--muted);margin:0 0 22px}
+
+  footer{padding:34px 0 46px;color:var(--muted);font-size:13px;text-align:center}
+  footer a{color:var(--muted)}
+  .ok{color:var(--ok)}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">DRACO / AI 自动化交付</div>
+    <h1>把重复的体力活，<span class="grad">交给我变成一条命令</span></h1>
+    <p class="lead">
+      脚本定制 · 数据自动化 · AI 能力接入 · 网站与工具部署。
+      交付物是可运行的代码和文档，不是 PPT 截图。下面两个样例都是<strong>实测跑通</strong>的真实工具，源码可下载。
+    </p>
+    <div class="cta">
+      <a class="btn btn-p" href="#demo">看交付样例</a>
+      <a class="btn btn-g" href="#pricing">看报价</a>
+      <a class="btn btn-g" href="#faq">常见问题</a>
+    </div>
+    <div class="pills">
+      <span class="pill">✓ 需求确认后再报价</span>
+      <span class="pill">✓ 源码归你，可二次开发</span>
+      <span class="pill">✓ 交付前跑通你的真实数据</span>
+      <span class="pill">✓ 微信 / 支付宝 / 对公均可</span>
+      <span class="pill">✓ 支持长期维护</span>
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <h2>交付样例</h2>
+    <p class="sec-sub">下面两个是可直接运行的完整成品。点「在线试用」立刻体验，点「看源码」拿走全部代码。</p>
+
+    <div class="demo">
+      <h3>① 数据看板生成器 <span class="ok" style="font-size:13px">· 单文件 HTML</span></h3>
+      <div class="meta">客户：电商运营 / 财务 / 市场部 —— 把 Excel 报表变成能直接发给老板的看板</div>
+      <div class="feat">
+        <div><b>拖入 CSV</b><span>或直接粘贴表格文本</span></div>
+        <div><b>自动识别列</b><span>数值列/维度列/日期列</span></div>
+        <div><b>6 个 KPI</b><span>合计·均值·最大·最小·去重</span></div>
+        <div><b>Top-N 排行</b><span>按指标列自动排序</span></div>
+        <div><b>趋势图</b><span>识别到日期列时自动出</span></div>
+        <div><b>导出 HTML</b><span>单文件发给客户即可看</span></div>
+      </div>
+      <div class="cmd">
+<b># 用法</b><br>
+1. 打开 HTML → 拖入你的 .csv（或点「载入示例数据」）<br>
+2. 点「生成看板」→ 自动出 KPI + 排行 + 趋势 + 明细表<br>
+3. 点「导出 HTML」→ 得到一个独立文件，双击就能看，不依赖本工具
+      </div>
+      <div class="btn-row">
+        <a class="btn-sm" href="tools/csv-dashboard.html" target="_blank">▶ 在线试用</a>
+        <a class="btn-sm" href="https://github.com/nonwesjoe/draco-services" target="_blank">⌘ 看源码</a>
+        <span class="muted" style="font-size:12.5px;align-self:center">纯前端 · 数据不离开浏览器 · 可离线</span>
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>② 批量文件处理器 <span class="ok" style="font-size:13px">· Python CLI</span></h3>
+      <div class="meta">客户：行政 / 设计 / 资料归档 / 电商 —— 几百个文件重复改名、转换、加水印，人工做要一天</div>
+      <div class="feat">
+        <div><b>批量重命名</b><span>前缀+日期+序号+关键词替换</span></div>
+        <div><b>PDF→图片</b><span>指定 DPI</span></div>
+        <div><b>图片→PDF</b><span>多图合并成一份</span></div>
+        <div><b>CSV→Excel</b><span>含中文 BOM 兼容</span></div>
+        <div><b>图片压缩</b><span>可设质量与最大宽</span></div>
+        <div><b>PDF 批量水印</b><span>自定义文字</span></div>
+        <div><b>批量提取文本</b><span>PDF/Word/Excel 合并成一个 txt</span></div>
+        <div><b>零人工介入</b><span>一条命令跑完全部文件</span></div>
+      </div>
+      <div class="cmd">
+<b># 批量改名（加前缀+日期+序号）</b><br>
+python batch_tool.py rename ./资料 -o ./整理后 --prefix 项目A --date "%Y%m%d"<br><br>
+<b># PDF 批量转图片</b><br>
+python batch_tool.py convert pdf2img ./合同 -o ./图片 --dpi 200<br><br>
+<b># 100 张图合并成一个 PDF</b><br>
+python batch_tool.py convert img2pdf ./照片 -o ./合集.pdf<br><br>
+<b># 批量提取文字，合并成一个文件</b><br>
+python batch_tool.py extract ./全部资料 -o ./汇总.txt
+      </div>
+      <div class="btn-row">
+        <a class="btn-sm" href="https://github.com/nonwesjoe/draco-services" target="_blank">⌘ 看源码</a>
+        <span class="muted" style="font-size:12.5px;align-self:center">已实测：7 个子命令全部跑通</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <h2>能做什么 · 大概多少钱</h2>
+    <p class="sec-sub">下面是常见需求档位。实际报价看你的具体场景，<strong>需求确认后再报价，不满意不收费</strong>。</p>
+    <div class="cards">
+      <div class="card">
+        <h3>表格与数据自动化</h3>
+        <div class="price">¥299<small> 起</small></div>
+        <p>Excel/CSV 批量处理、报表自动生成、格式转换、去重合并</p>
+        <ul><li>单脚本工具，带使用说明</li><li>你的真实数据跑通后才交付</li><li>交付后 7 天内可改</li></ul>
+      </div>
+      <div class="card">
+        <h3>文档与办公自动化</h3>
+        <div class="price">¥499<small> 起</small></div>
+        <p>批量生成 PPT/Word/合同/报告、PDF 处理、OCR 识别与整理</p>
+        <ul><li>支持 Word / Excel / PPT / PDF</li><li>可做模板，批量套用</li><li>可选定时自动跑</li></ul>
+      </div>
+      <div class="card">
+        <h3>AI 能力接入</h3>
+        <div class="price">¥899<small> 起</small></div>
+        <p>给你的系统接上大模型：问答、文档总结、批量处理、客服助手</p>
+        <ul><li>多家模型可切换</li><li>含 API 配置与用量控制</li><li>可部署成内部网页</li></ul>
+      </div>
+      <div class="card">
+        <h3>网站 / 工具部署</h3>
+        <div class="price">¥1499<small> 起</small></div>
+        <p>小工具、看板、内部管理页，带域名和部署</p>
+        <ul><li>响应式，手机也能用</li><li>含服务器与部署</li><li>可选长期运维</li></ul>
+      </div>
+      <div class="card">
+        <h3>爬虫与数据采集</h3>
+        <div class="price">¥399<small> 起</small></div>
+        <p>定时抓取公开信息，输出表格或推送</p>
+        <ul><li>仅采集公开合法数据</li><li>含反爬与格式适配</li><li>异常自动重试</li></ul>
+      </div>
+      <div class="card">
+        <h3>长期维护</h3>
+        <div class="price">¥199<small>/月起</small></div>
+        <p>改需求、修环境、跟版本，响应快</p>
+        <ul><li>工作日当天响应</li><li>小改动免费</li><li>可随时停止</li></ul>
+      </div>
+    </div>
+
+    <h3 style="margin:34px 0 4px;font-size:17px">常见加价项</h3>
+    <table>
+      <tr><th>加价项</th><th>说明</th></tr>
+      <tr><td>需求变更</td><td>确认后新增功能，按工作量另算，一般 ¥100 起/项</td></tr>
+      <tr><td>额外售后</td><td>交付后 7 天免费改，之后 ¥99/次 或走维护套餐</td></tr>
+      <tr><td>数据源授权</td><td>需要付费 API 或商业数据源时，费用实报实销，另签说明</td></tr>
+      <tr><td>私有部署</td><td>需要装在你自己的服务器/内网：+¥500</td></tr>
+      <tr><td>加急</td><td>48 小时内交付：总价 +30%</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="process">
+  <div class="wrap">
+    <h2>怎么合作</h2>
+    <p class="sec-sub">四步，从你发消息到拿到东西，最快当天。</p>
+    <div class="steps">
+      <div class="step"><h4>说需求</h4><p>微信/邮箱都行，说清楚"现在怎么做、想变成什么样"，越具体报价越准。</p></div>
+      <div class="step"><h4>确认方案</h4><p>我回一份方案：做什么、交付什么、多少钱、几天。确认后再动手。</p></div>
+      <div class="step"><h4>开发与验证</h4><p>开发完用你的真实数据跑一遍，把结果发你验收。</p></div>
+      <div class="step"><h4>交付与售后</h4><p>给源码 + 使用说明 + 演示视频，7 天内免费修改。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>常见问题</h2>
+    <p class="sec-sub">下单前可能想问的。</p>
+    <div class="faq">
+      <details><summary>交付的是源码还是只有结果？</summary>
+        <p>两者都有：给你完整源码（Python / HTML / 配置文件）、使用说明、以及一份录屏演示。源码所有权归你，可以自己改、可以给公司同事用。</p></details>
+      <details><summary>我不确定要什么，能先聊吗？</summary>
+        <p>可以，先免费聊。你把现在怎么做的、哪里最烦，说清楚就行，不用想技术方案。我给建议和报价，觉得不合适就不做，没有违约金。</p></details>
+      <details><summary>会不会把我的数据泄露出去？</summary>
+        <p>不会。交付的工具默认在你自己电脑上跑，数据不出你的机器。需要联网的会提前说清楚是哪一步、传什么。</p></details>
+      <details><summary>没需求文档怎么办？</summary>
+        <p>不需要。你发两三个例子——比如"这是现在要处理的文件，这是我希望的结果"——我照着做，做完给你看，不满意改。</p></details>
+      <details><summary>怎么付款？</summary>
+        <p>微信、支付宝、个人银行卡都可以，需要对公也可以开票。常见做法是 50% 定金 → 交付验收 → 付尾款，小单可全款后开工。</p></details>
+      <details><summary>做完能改吗？</summary>
+        <p>能。交付后 7 天内免费修改。之后的改动按 ¥99/次，或者订阅 ¥199/月的维护套餐，响应更快。</p></details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="contact">
+      <h2>有需求？先说说看</h2>
+      <p>把你现在最烦的那件重复劳动描述一下，小狐狸 24 小时内回你方案和报价。</p>
+      <div class="cta" style="justify-content:center">
+        <a class="btn btn-p" href="#contact-wechat">加微信聊</a>
+        <a class="btn btn-g" href="#demo">先看看样例</a>
+      </div>
+      <p style="margin-top:20px;font-size:13px" id="contact-wechat">
+        微信 / 邮箱：<strong style="color:var(--text)">发消息给我即可，这里填你的联系方式</strong><br>
+        <span class="muted">（把这行替换成你的微信 / 邮箱，页面即可对外发布）</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p style="margin:0">Draco AI 自动化服务 · 用 AI 做自动化交付的小团队<br>
+    <span class="muted">本页所列工具均已在本机实测运行 · <a href="https://github.com/nonwesjoe/draco-services" target="_blank">源码仓库</a></span></p>
+  </div>
+</footer>
+
+</body>
+</html>
